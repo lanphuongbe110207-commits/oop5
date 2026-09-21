@@ -1,26 +1,23 @@
 #include<iostream>
 using namespace std;
-class overall{
-private: 
-    int CPU;
-    int time;
+class compute{
+    int cpu;
     double ram;
-    double data_trans;
-    float price;
-public: 
-class AWS{
-private:
-    string service;
-    float price;
-    int time;
-public: 
-
-
-
+    double pricePerHour;
+};
+class Storage{
+    double capacity;
+    double pricePerGB;
 
 };
-
-
-
+class Network{
+    double dataTransfer;
+    double pricePerGB;
 };
+class CloudFactory{
+    
+}
+
+
+
 int main(){}
