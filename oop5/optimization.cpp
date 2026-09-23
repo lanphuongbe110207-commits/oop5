@@ -17,6 +17,11 @@ class Storage{
 protected :
     double capacity;
     double pricePerGB;
+public : 
+Storage(){
+    capacity = 0.0;
+    pricePerGB = 0.0;
+}
 
 };
 class Network{
@@ -24,7 +29,12 @@ protected :
     double dataTransfer;
     double pricePerGB;
 public :
+Network(){
+    dataTransfer = 0.0;
+    pricePerGB = 0.0;
+}
 };
+
 
 class CloudFactory {
 public : 
