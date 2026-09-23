@@ -35,6 +35,27 @@ Network(){
 }
 };
 
+class Requirement{
+private : 
+int cpu;
+    double ram;
+    double pricePerHour;
+    double capacity;
+    double pricePerGB;
+    double dataTransfer;
+    double pricePerGB;
+public : 
+void input(){
+    cout<<"Enter CPU :";
+    cin >> cpu;
+    cout<<"Enter ram";
+    cin >> ram;
+    cout <<"Enter capaccity";
+    cin >> capacity;
+    cout <<"Enter Data Tranfer";
+    cin >> dataTransfer;
+}
+};
 
 class CloudFactory {
 public : 
