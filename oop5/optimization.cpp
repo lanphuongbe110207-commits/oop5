@@ -1,12 +1,12 @@
 #include<iostream>
 using namespace std;
-class compute{
+class Compute{
 protected :
     int cpu;
     double ram;
     double pricePerHour;
 public:
-compute(){
+Compute(){
     cpu = 0;
     ram =0.0;
     pricePerHour = 0.0;
@@ -34,6 +34,12 @@ Network(){
     pricePerGB = 0.0;
 }
 };
+class Discount{
+    protected:
+    float Dicount;
+    int month;
+    int year;
+};
 
 class Requirement{
 private : 
@@ -44,6 +50,11 @@ int cpu;
     double pricePerGB;
     double dataTransfer;
     double pricePerGB;
+    float importanceCPU;
+    float importanceRam;
+    float importancecapacity;
+    float importanceDataTranfer;
+
 public : 
 void input(){
     cout<<"Enter CPU :";
@@ -54,6 +65,18 @@ void input(){
     cin >> capacity;
     cout <<"Enter Data Tranfer";
     cin >> dataTransfer;
+    cout<<"Enter your percentage of importance for CPU";
+    cin >>importanceCPU;
+    cout<<"Enter your percentage of importance for Ram";
+    cin >>importanceRam;
+
+    cout<<"Enter your percentage of importance for Capacity";
+    cin >>importancecapacity;
+
+    cout<<"Enter your percentage of importance for Data Transfer";
+    cin >>importanceDataTranfer;
+
+
 }
 };
 
@@ -62,15 +85,20 @@ public :
     virtual compute* createCompute()= 0;
     virtual Storage* createStorage() = 0;
     virtual Network* createNetwork() = 0; 
+    virtual Discount* createDiscount() = 0;
 
 
 
 };
 class AWSFactory : public CloudFactory{
     public : 
-    compute* createCompute() override {
+    Compute* createCompute() override {
+        return new AWSCompute();
         
 
+    }
+    compute* createStorage() override{
+        return new AWSStorage();
     }
 };
     
