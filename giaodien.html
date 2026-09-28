@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cloud Cost Optimizer</title>
+<style>
+  :root{
+    --bg1:#eef3fb; --bg2:#dfe9f8;
+    --glass: rgba(255,255,255,0.55);
+    --glass-border: rgba(255,255,255,0.75);
+    --text:#1d1d1f; --sub:#6e6e73;
+    --blue:#0071e3; --blue-d:#0058b0;
+    --green:#26a65b;
+    --radius:22px;
+    padding-top: env(safe-area-inset-top,0px);
+    padding-bottom: env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg1:#0b0d12; --bg2:#111722;
+      --glass: rgba(30,32,38,0.55);
+      --glass-border: rgba(255,255,255,0.08);
+      --text:#f5f5f7; --sub:#a1a1a6;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg1:#0b0d12; --bg2:#111722;
+    --glass: rgba(30,32,38,0.55);
+    --glass-border: rgba(255,255,255,0.08);
+    --text:#f5f5f7; --sub:#a1a1a6;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Helvetica,Arial,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #cfe4ff55, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, #d7f0ff66, transparent 60%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    min-height:100%;
+    display:flex;
+    justify-content:center;
+    padding:56px 20px 80px;
+  }
+  .wrap{width:100%; max-width:760px;}
+  .eyebrow{
+    text-align:center; color:var(--blue); font-weight:600; font-size:15px; margin-bottom:8px;
+  }
+  h1{
+    text-align:center; font-size:clamp(30px,5vw,44px); font-weight:700; letter-spacing:-0.02em;
+    margin:0 0 10px;
+  }
+  .lede{
+    text-align:center; color:var(--sub); font-size:17px; max-width:520px; margin:0 auto 40px;
+    line-height:1.5;
+  }
+  .glass{
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border-radius:var(--radius);
+    box-shadow: 0 10px 40px rgba(0,40,100,0.08);
+  }
+  .panel{ padding:32px; margin-bottom:24px; }
+  .grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;
+  }
+  @media(max-width:520px){ .grid{grid-template-columns:1fr;} }
+  label{ display:block; font-size:13px; color:var(--sub); margin-bottom:6px; font-weight:500; }
+  input{
+    width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(0,0,0,0.08);
+    background:rgba(255,255,255,0.7); font-size:16px; color:var(--text);
+    outline:none; transition:border-color .15s, box-shadow .15s;
+  }
+  :root[data-theme="dark"] input, @media (prefers-color-scheme: dark){ input{ background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12);} }
+  input:focus{ border-color:var(--blue); box-shadow:0 0 0 4px rgba(0,113,227,0.15); }
+  .field{ margin-bottom:2px; }
+  .section-title{ font-size:13px; font-weight:600; color:var(--blue); margin:22px 0 12px; text-transform:none; }
+  .section-title:first-child{ margin-top:0; }
+  button{
+    width:100%; margin-top:26px; padding:15px; border:none; border-radius:14px;
+    background:linear-gradient(180deg, var(--blue), var(--blue-d));
+    color:white; font-size:17px; font-weight:600; cursor:pointer;
+    box-shadow:0 8px 24px rgba(0,113,227,0.35);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  button:hover{ transform:translateY(-1px); box-shadow:0 10px 28px rgba(0,113,227,0.45); }
+  button:active{ transform:translateY(0px) scale(0.99); }
+
+  #results{ display:none; }
+  .cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media(max-width:640px){ .cards{grid-template-columns:1fr;} }
+  .card{
+    padding:22px 18px; text-align:center; position:relative; overflow:hidden;
+  }
+  .card .name{ font-size:15px; font-weight:600; color:var(--sub); margin-bottom:10px; }
+  .card .price{ font-size:28px; font-weight:700; letter-spacing:-0.01em; }
+  .card .unit{ font-size:13px; color:var(--sub); margin-top:2px; }
+  .card.best{
+    border:1.5px solid var(--green);
+    box-shadow:0 10px 30px rgba(38,166,91,0.25);
+  }
+  .badge{
+    display:inline-block; background:var(--green); color:white; font-size:11px; font-weight:700;
+    padding:4px 10px; border-radius:20px; margin-bottom:10px;
+  }
+  .footnote{ text-align:center; color:var(--sub); font-size:13px; margin-top:22px; }
+
+  .hero-icon{ display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
+  .app-badge{
+    width:44px; height:44px; border-radius:12px; margin-bottom:22px;
+    background:linear-gradient(160deg,#2b2b2d,#000);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 16px rgba(0,0,0,0.25);
+  }
+  .app-badge svg{ width:20px; height:20px; }
+  .app-badge path{ fill:#fff; }
+  .cloud-mark{ width:120px; height:auto; filter:drop-shadow(0 14px 26px rgba(0,113,227,0.30)); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero-icon">
+    <div class="app-badge">
+      <svg viewBox="0 0 170 170" xmlns="http://www.w3.org/2000/svg">
+        <path d="M150.2 129.5c-2.7 6.2-5.9 11.9-9.7 17.2-5.2 7.2-9.4 12.2-12.7 15-5.1 4.7-10.6 7.1-16.5 7.2-4.2 0-9.3-1.2-15.2-3.7-5.9-2.4-11.4-3.6-16.4-3.6-5.3 0-10.9 1.2-16.9 3.6-6 2.5-10.8 3.8-14.5 3.9-5.6.2-11.3-2.3-16.9-7.4-3.6-3.1-8-8.3-13.1-15.6-5.5-7.8-10-16.9-13.5-27.2C1.5 108 0 97.7 0 87.6c0-11.4 2.5-21.3 7.4-29.5 3.9-6.6 9.1-11.9 15.6-15.7 6.5-3.8 13.5-5.8 21.1-5.9 4.5 0 10.4 1.4 17.9 4.1 7.4 2.7 12.2 4.1 14.3 4.1 1.6 0 6.9-1.6 15.8-4.9 8.4-3 15.5-4.3 21.3-3.8 15.7 1.3 27.5 7.5 35.3 18.7-14.1 8.5-21.1 20.5-21 35.8.1 12 4.4 22 13.1 30 3.9 3.7 8.2 6.6 13 8.6-1 3.1-2.1 6.1-3.6 9.4zM119.1 3.4c0 8.5-3.1 16.5-9.3 23.8-7.5 8.8-16.6 13.8-26.4 13-.1-1-.2-2.1-.2-3.3 0-8.2 3.6-17 10-24.6 3.2-3.8 7.3-7 12.2-9.6 4.9-2.5 9.6-3.9 13.9-4.1.1 1.6.2 2.7.2 4.8z"/>
+      </svg>
+    </div>
+    <svg class="cloud-mark" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cloudGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#4fb3ff"/>
+          <stop offset="100%" stop-color="#0071e3"/>
+        </linearGradient>
+      </defs>
+      <path fill="url(#cloudGrad)" d="M56 96C33.9 96 16 78.1 16 56c0-20 14.8-36.6 34.1-39.5C56.6 6.3 71 -2 87.5 -2c19.9 0 36.8 13.1 42.4 31.2C147.6 30.9 160 46.6 160 65c0 22.1-17.9 40-40 40H56v-9z" transform="translate(0,10)"/>
+    </svg>
+  </div>
+  <div class="eyebrow">Multi-Cloud Infrastructure</div>
+  <h1>Cloud Cost Optimizer</h1>
+  <p class="lede">Nhập yêu cầu tài nguyên và mức giá gốc, hệ thống sẽ mô phỏng chi phí trên AWS, GCP và Azure để tìm phương án tối ưu nhất.</p>
+
+  <div class="glass panel">
+    <div class="section-title">Yêu cầu tài nguyên</div>
+    <div class="grid">
+      <div class="field"><label>CPU (vCPU)</label><input id="cpu" type="number" value="8"></div>
+      <div class="field"><label>RAM (GB)</label><input id="ram" type="number" value="16"></div>
+      <div class="field"><label>Storage (GB)</label><input id="capacity" type="number" value="100"></div>
+      <div class="field"><label>Data Transfer (GB)</label><input id="dataTransfer" type="number" value="50"></div>
+      <div class="field"><label>Giờ sử dụng / tháng</label><input id="hours" type="number" value="730"></div>
+    </div>
+
+    <div class="section-title">Giá gốc (base price)</div>
+    <div class="grid">
+      <div class="field"><label>Compute ($ / giờ)</label><input id="priceCompute" type="number" step="0.001" value="0.10"></div>
+      <div class="field"><label>Storage ($ / GB)</label><input id="priceStorage" type="number" step="0.001" value="0.02"></div>
+      <div class="field"><label>Network ($ / GB)</label><input id="priceNetwork" type="number" step="0.001" value="0.09"></div>
+    </div>
+
+    <button onclick="calculate()">So sánh chi phí</button>
+  </div>
+
+  <div id="results" class="glass panel">
+    <div class="section-title">Kết quả so sánh</div>
+    <div class="cards" id="cards"></div>
+    <div class="footnote" id="recommend"></div>
+  </div>
+</div>
+
+<script>
+function computeCost(multiplier, cpu, ram, capacity, dataTransfer, hours, pC, pS, pN){
+  const priceCompute = pC * multiplier;
+  const priceStorage = pS * multiplier;
+  const priceNetwork = pN * multiplier;
+  const computeCost = priceCompute * hours;
+  const storageCost = capacity * priceStorage;
+  const networkCost = dataTransfer * priceNetwork;
+  return computeCost + storageCost + networkCost;
+}
+
+function calculate(){
+  const cpu = parseFloat(document.getElementById('cpu').value) || 0;
+  const ram = parseFloat(document.getElementById('ram').value) || 0;
+  const capacity = parseFloat(document.getElementById('capacity').value) || 0;
+  const dataTransfer = parseFloat(document.getElementById('dataTransfer').value) || 0;
+  const hours = parseFloat(document.getElementById('hours').value) || 0;
+  const pC = parseFloat(document.getElementById('priceCompute').value) || 0;
+  const pS = parseFloat(document.getElementById('priceStorage').value) || 0;
+  const pN = parseFloat(document.getElementById('priceNetwork').value) || 0;
+
+  const providers = [
+    { name: 'AWS',   mult: 1.00 },
+    { name: 'GCP',   mult: 0.95 },
+    { name: 'Azure', mult: 1.05 },
+  ];
+
+  const costs = providers.map(p => ({
+    name: p.name,
+    cost: computeCost(p.mult, cpu, ram, capacity, dataTransfer, hours, pC, pS, pN)
+  }));
+
+  const min = costs.reduce((a,b) => b.cost < a.cost ? b : a);
+
+  const cardsEl = document.getElementById('cards');
+  cardsEl.innerHTML = costs.map(c => `
+    <div class="glass card ${c.name === min.name ? 'best' : ''}">
+      ${c.name === min.name ? '<div class="badge">Tối ưu nhất</div>' : ''}
+      <div class="name">${c.name}</div>
+      <div class="price">$${c.cost.toFixed(2)}</div>
+      <div class="unit">/ tháng</div>
+    </div>
+  `).join('');
+
+  document.getElementById('recommend').textContent =
+    `Nên chọn ${min.name} — tiết kiệm nhất với $${min.cost.toFixed(2)}/tháng cho cấu hình này.`;
+
+  document.getElementById('results').style.display = 'block';
+}
+
+calculate();
+</script>
+</body>
+</html>
