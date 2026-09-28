@@ -42,7 +42,7 @@ class Discount{
 };
 
 class Requirement{
-private : 
+    protected : 
 int cpu;
     double ram;
     double pricePerHour;
@@ -100,15 +100,60 @@ class AWSFactory : public CloudFactory{
     Storage* createStorage() override{
         return new AWSStorage();
     }
+
+    Network* createNetwork() override{
+        return new AWSNetwork();
+
+    }
+
+    Discount* createDiscount() override{
+        return new AWSDiscount();
+
+    }
 };
+class GCPFACTORY: public CloudFactory{
+    public:
+    Compute* createCompute()override {
+        return new GCPCompute();
+    }
+
+    Storage* createStorage() override {
+        return new GCPStorage();
+    }
+
+    Network* createNetwork()override {
+        return new GCPNetwork();
+    }
+
+    DIscount* createDiscount()override {
+        return new GCPDiscount();
+    }
+
+};
+
+class AzureFactory : public CloudFactory{
+    Compute* createCompute() override {
+        return new AzureCompute();
+    }
+    Storage* createStorage() override {
+        return new AzureStorage();
+    }
+    Network* createNetwork() override{
+        return new AzureNetwork();
+    }
+
+    DIscount* createDiscount()override {
+        return new AzureDiscount();
+    }
+};
+
+class 
+
     
-class CPUFactory : public CloudFactory{
-
-
-};
 
 
 
 
 int main(){
+    return 0;
 }

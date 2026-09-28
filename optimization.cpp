@@ -97,77 +97,15 @@ class AWSFactory : public CloudFactory{
         
 
     }
-    compute* createStorage() override{
+    Storage* createStorage() override{
         return new AWSStorage();
+    }
+
+    Network* createNetwork() override{
+        
     }
 };
  
-
-
-
-
-
-class CloudResult {
-private:
-    string provider;  
-    double totalCost; 
-
-public:
-    CloudResult() {
-        provider = "";
-        totalCost = 0.0;
-    }
-
-    
-    CloudResult(string provider, double totalCost) {
-        this->provider = provider;
-        this->totalCost = totalCost;
-    }
-
-   
-    string getProvider() const { return provider; }
-
-    
-    double getTotalCost() const { return totalCost; }
-};
-
-
-class OptimizationStrategy {
-public:
-    
-    virtual CloudResult optimize(const vector<CloudResult>& results) = 0;
-
-    virtual ~OptimizationStrategy() {}
-};
-
-
-class CheapestStrategy : public OptimizationStrategy {
-public:
-    CloudResult optimize(const vector<CloudResult>& results) override {
-
-       
-        if (results.empty()) {
-            return CloudResult("No provider", 0.0);
-        }
-
-        
-        CloudResult best = results[0];
-
-        
-        for (int i = 1; i < results.size(); i++) {
-
-            
-            if (results[i].getTotalCost() < best.getTotalCost()) {
-                best = results[i]; 
-            }
-        }
-
-        
-        return best;
-    }
-};
-
-
 
 
 
