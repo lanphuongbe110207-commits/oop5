@@ -97,11 +97,15 @@ class AWSFactory : public CloudFactory{
         
 
     }
-    compute* createStorage() override{
+    Storage* createStorage() override{
         return new AWSStorage();
     }
 };
     
+class CPUFactory : public CloudFactory{
+
+
+};
 
 
 
