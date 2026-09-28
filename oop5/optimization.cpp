@@ -45,11 +45,11 @@ class Requirement{
     protected : 
 int cpu;
     double ram;
-    double pricePerHour;
+    
     double capacity;
-    double pricePerGB;
+   
     double dataTransfer;
-    double pricePerGB;
+  
     float importanceCPU;
     float importanceRam;
     float importancecapacity;
@@ -82,7 +82,7 @@ void input(){
 
 class CloudFactory {
 public : 
-    virtual compute* createCompute()= 0;
+    virtual Compute* createCompute()= 0;
     virtual Storage* createStorage() = 0;
     virtual Network* createNetwork() = 0; 
     virtual Discount* createDiscount() = 0;
