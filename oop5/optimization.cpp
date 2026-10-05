@@ -35,11 +35,13 @@ virtual ~Compute() = default;
 class Storage{
 protected :
     double capacity[100];
+    string type[100];
     
 public : 
 Storage(){
     for(int i=0;i<100;i++){
         capacity[i] = 0.0;
+        type[i] = "";
         
     }
 }
@@ -174,6 +176,41 @@ class AWSCompute : public Compute{
         ram[4] = 64.0;
     }
 
+};
+
+class AWSStorage : public Storage{
+    public :
+    AWSStorage(){
+        type[0] = "gp3";
+capacity[0] = 50;
+
+type[1] = "gp3";
+capacity[1] = 100;
+
+type[2] = "gp3";
+capacity[2] = 500;
+
+type[3] = "gp3";
+capacity[3] = 1024;   // 1 TB
+
+type[4] = "gp2";
+capacity[4] = 50;
+
+type[5] = "gp2";
+capacity[5] = 100;
+
+type[6] = "gp2";
+capacity[6] = 500;
+
+type[7] = "gp2";
+capacity[7] = 1024;   
+
+type[8] = "io2";
+capacity[8] = 50;
+
+type[9] = "io2";
+capacity[9] = 1024;   
+    }
 };
 
 class AWSDiscount : public Discount{
