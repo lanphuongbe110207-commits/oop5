@@ -2,53 +2,79 @@
 using namespace std;
 class Compute{
 protected :
-    int cpu;
-    double ram;
-    double pricePerHour;
+    int cpu[100];
+    double ram[100];
+    double pricePerHour[100];
 public:
 Compute(){
-    cpu = 0;
-    ram =0.0;
-    pricePerHour = 0.0;
+    for(int i=0;i<100;i++){
+        cpu[i] = 0;
+        ram[i] = 0.0;
+        pricePerHour[i] = 0.0;
+    }
+   
 };
+
+virtual ~Compute() = default;
 
 };
 class Storage{
 protected :
-    double capacity;
-    double pricePerGB;
+    double capacity[100];
+    double pricePerGB[100];
 public : 
 Storage(){
-    capacity = 0.0;
-    pricePerGB = 0.0;
+    for(int i=0;i<100;i++){
+        capacity[i] = 0.0;
+        pricePerGB[i] = 0.0;
+    }
 }
+
+virtual ~Storage() = default;
 
 };
 class Network{
 protected :
-    double dataTransfer;
-    double pricePerGB;
-public :
+    double dataTransfer[100];
+    double pricePerGB[100];
+public : 
 Network(){
-    dataTransfer = 0.0;
-    pricePerGB = 0.0;
+    for(int i=0;i<100;i++){
+        dataTransfer[i] = 0.0;
+        pricePerGB[i] = 0.0;
+    }
 }
+virtual ~Network() = default;
 };
 class Discount{
     protected:
-    float Dicount;
-    int month;
-    int year;
+    float discount[100];
+    int month[100];
+    string type[100];
+    int OrderOfType[100];
+    
+    
+    public : 
+    Discount(){
+        discount[0] = 0.0;
+        month[0] = 0;
+        type[0] = "";
+        OrderOfType[0] = 0;
+    
+    }
+    virtual double calculateDiscount(double price) = 0;
+
+    virtual ~Discount() = default;
 };
 
 class Requirement{
     protected : 
-int cpu;
-    double ram;
+int cpu[100];
+    double ram[100];
     
-    double capacity;
+    double capacity[100];
    
-    double dataTransfer;
+    double dataTransfer[100];
   
     float importanceCPU;
     float importanceRam;
@@ -111,6 +137,32 @@ class AWSFactory : public CloudFactory{
 
     }
 };
+
+class AWSCompute : public Compute{
+
+}
+
+class AWSDiscount : public Discount{
+    public :
+    AWSDiscount(){
+        type[0] = "On Demand";
+        discount[0] = 0.0;
+        OrderOfType[0]   = 1;
+
+        type[1] ="Saving Plan";
+        discount[1] = 0.0;
+        OrderOfType[1] = 2;
+
+        type[2]= "Reversed Instances";
+        discount[2] = 0.0;
+        OrderOfType[2] = 3;
+
+        type[3] ="Spot";
+        discount[3] = 0.0;
+        OrderOfType[3] = 4;
+    }
+}
+
 class GCPFACTORY: public CloudFactory{
     public:
     Compute* createCompute()override {
@@ -125,13 +177,14 @@ class GCPFACTORY: public CloudFactory{
         return new GCPNetwork();
     }
 
-    DIscount* createDiscount()override {
+    Discount* createDiscount()override {
         return new GCPDiscount();
     }
 
 };
 
 class AzureFactory : public CloudFactory{
+    public:
     Compute* createCompute() override {
         return new AzureCompute();
     }
@@ -142,7 +195,7 @@ class AzureFactory : public CloudFactory{
         return new AzureNetwork();
     }
 
-    DIscount* createDiscount()override {
+    Discount* createDiscount()override {
         return new AzureDiscount();
     }
 };
