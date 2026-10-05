@@ -4,16 +4,30 @@ class Compute{
 protected :
     int cpu[100];
     double ram[100];
-    double pricePerHour[100];
+    
 public:
 Compute(){
     for(int i=0;i<100;i++){
         cpu[i] = 0;
         ram[i] = 0.0;
-        pricePerHour[i] = 0.0;
+        
     }
    
 };
+
+class Price{
+    protected :
+    double ComputepriceperHour[100];
+    double StoragepricePerGB[100];
+    double NetworkpricePerGB[100];
+    public :
+    Price(){
+        for(int i =0; i<100;i++){
+            ComputepriceperHour[i] = 0.0;
+            StoragepricePerGB[i] = 0.0;
+            NetworkpricePerGB[i] = 0.0;
+        }
+    }
 
 virtual ~Compute() = default;
 
@@ -21,12 +35,12 @@ virtual ~Compute() = default;
 class Storage{
 protected :
     double capacity[100];
-    double pricePerGB[100];
+    
 public : 
 Storage(){
     for(int i=0;i<100;i++){
         capacity[i] = 0.0;
-        pricePerGB[i] = 0.0;
+        
     }
 }
 
@@ -36,12 +50,12 @@ virtual ~Storage() = default;
 class Network{
 protected :
     double dataTransfer[100];
-    double pricePerGB[100];
+    
 public : 
 Network(){
     for(int i=0;i<100;i++){
         dataTransfer[i] = 0.0;
-        pricePerGB[i] = 0.0;
+        
     }
 }
 virtual ~Network() = default;
@@ -136,11 +150,31 @@ class AWSFactory : public CloudFactory{
         return new AWSDiscount();
 
     }
+    Price* createPrice() override{
+        return new AWSPrice();
+    }
 };
 
 class AWSCompute : public Compute{
+    public:
+    AWSCompute(){
+        cpu[0] = 2;
+        ram[0] = 4.0;
 
-}
+        cpu[1] = 4;
+        ram[1] = 8.0;
+
+        cpu[2] = 8;
+        ram[2] = 16.0;
+
+        cpu[3] = 16;
+        ram[3] = 32.0;
+
+        cpu[4] = 32;
+        ram[4] = 64.0;
+    }
+
+};
 
 class AWSDiscount : public Discount{
     public :
@@ -161,7 +195,7 @@ class AWSDiscount : public Discount{
         discount[3] = 0.0;
         OrderOfType[3] = 4;
     }
-}
+};      
 
 class GCPFACTORY: public CloudFactory{
     public:
@@ -180,6 +214,9 @@ class GCPFACTORY: public CloudFactory{
     Discount* createDiscount()override {
         return new GCPDiscount();
     }
+    Price* createPrice() override{
+        return new GCPPrice();
+    }
 
 };
 
@@ -197,6 +234,9 @@ class AzureFactory : public CloudFactory{
 
     Discount* createDiscount()override {
         return new AzureDiscount();
+    }
+    Price* createPrice() override{
+        return new AzurePrice();
     }
 };
 
