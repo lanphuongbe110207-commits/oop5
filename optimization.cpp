@@ -82,7 +82,7 @@ void input(){
 
 class CloudFactory {
 public : 
-    virtual compute* createCompute()= 0;
+    virtual Compute* createCompute()= 0;
     virtual Storage* createStorage() = 0;
     virtual Network* createNetwork() = 0; 
     virtual Discount* createDiscount() = 0;

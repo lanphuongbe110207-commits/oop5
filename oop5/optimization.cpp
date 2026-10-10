@@ -12,7 +12,9 @@ Compute(){
         ram[i] = 0.0;
         
     }
+    virtual ~Compute() = default;
    
+}
 };
 
 class Price{
@@ -29,7 +31,7 @@ class Price{
         }
     }
 
-virtual ~Compute() = default;
+virtual ~Price() = default;
 
 };
 class Storage{
@@ -174,6 +176,21 @@ class AWSCompute : public Compute{
 
         cpu[4] = 32;
         ram[4] = 64.0;
+
+        cpu[5] = 2;
+        ram[5] = 8.0;
+
+        cpu[6] = 4;
+        ram[6] = 16.0;
+
+        cpu[7] = 8;
+        ram[7] = 32.0;
+
+        cpu[8] = 16;
+        ram[8] = 64.0;
+
+        cpu[9] = 32;
+        ram[9] = 128.0;
     }
 
 };
@@ -191,7 +208,7 @@ type[2] = "gp3";
 capacity[2] = 500;
 
 type[3] = "gp3";
-capacity[3] = 1024;   // 1 TB
+capacity[3] = 1024;  
 
 type[4] = "gp2";
 capacity[4] = 50;
