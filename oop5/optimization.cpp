@@ -1,8 +1,18 @@
 #include<iostream>
+#include<string>
+
 using namespace std;
+enum class resourceType{
+    OnDemand = 0,
+    Compute,
+    Serverless,
+    Storage,
+    Database,
+    Container
+};
 class Compute{
 protected :
-    int cpu[100];
+    float cpu[100];
     double ram[100];
     double pricePerHour[100];
     string type[100];
@@ -16,9 +26,11 @@ Compute(){
         type[i] = "";
         
     }
+}
+    virtual ResourceType getresourceType() const = 0;
     virtual ~Compute() = default;
    
-}
+
 };
 
 class Price{
@@ -74,9 +86,13 @@ virtual ~Network() = default;
 class Discount{
     protected:
     float discount[100];
+    float MaxDiscount[100];
     int month[100];
     string type[100];
     int OrderOfType[100];
+    int ResourceType[100];
+    bool isApplicable[100];
+    int Count[100];
     
     
     public : 
@@ -85,8 +101,26 @@ class Discount{
         month[0] = 0;
         type[0] = "";
         OrderOfType[0] = 0;
-    
+        ResourceType[0] = 0;
+        Count[0] = 0;
+        isApplicable[0] = false;
     }
+    void add(string discountType, float discountValue, int month, int resourceType, bool isApplicable, int orderOfType, float MaxDiscount){
+        for(int i=0;i<100;i++){
+            if(type[i] == ""){
+                type[i] = discountType;
+                discount[i] = discountValue;
+                MaxDiscount[i] = MaxDiscount;
+                this->month[i] = month;
+                ResourceType[i] = resourceType;
+                this->isApplicable[i] = isApplicable;
+                OrderOfType[i] = orderOfType;
+                Count[i]++;
+                break;
+            }
+        }
+    }
+    
     virtual double calculateDiscount(double price) = 0;
 
     virtual ~Discount() = default;
@@ -94,12 +128,12 @@ class Discount{
 
 class Requirement{
     protected : 
-int cpu[100];
-    double ram[100];
+float cpu;
+    double ram;
     
-    double capacity[100];
+    double capacity;
    
-    double dataTransfer[100];
+    double dataTransfer;
   
     float importanceCPU;
     float importanceRam;
@@ -116,6 +150,9 @@ void input(){
     cin >> capacity;
     cout <<"Enter Data Tranfer";
     cin >> dataTransfer;
+
+    float sum;
+    while(true){
     cout<<"Enter your percentage of importance for CPU";
     cin >>importanceCPU;
     cout<<"Enter your percentage of importance for Ram";
@@ -126,6 +163,12 @@ void input(){
 
     cout<<"Enter your percentage of importance for Data Transfer";
     cin >>importanceDataTranfer;
+    sum = importanceCPU + importanceRam + importancecapacity + importanceDataTranfer;
+    if(tong == 1) break;
+    cout<<"Sum has to be equal to 1, please retype"<< tong <<". Retype.\n";
+    }
+    
+   
 
 
 }
@@ -137,12 +180,14 @@ public :
     virtual Storage* createStorage() = 0;
     virtual Network* createNetwork() = 0; 
     virtual Discount* createDiscount() = 0;
+    virtual Price* createPrice() = 0;
 
 
 
 };
 class AWSFactory : public CloudFactory{
     public : 
+
     Compute* createCompute() override {
         return new AWSCompute();
         
@@ -245,6 +290,7 @@ class AWSCompute : public Compute{
         pricePerHour[14] = 2.016;
     }
     // cac gia tren duoc xac dinh theo quy mo, dua vao instance, muc on-demand duoc aws cong bo
+    
 
 };
 
