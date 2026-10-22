@@ -30,6 +30,7 @@ Compute(){
 }
     virtual ResourceType getResourceType() const = 0;
     virtual ~Compute() = default;
+
    
 
 };
@@ -593,14 +594,172 @@ class GCPFactory : public CloudFactory{
 
 };
 
-class AzureCompute: public Compute(){
+class AzureCompute : public Compute{
     public:
     AzureCompute(){
-        type[0] =""
+        type[0] = "F2s_v2";
+        cpu[0] = 2;
+        ram[0] = 4.0;
+        pricePerHour[0] = 0.0846;
+
+        type[1] = "F4s_v2";
+        cpu[1] = 4;
+        ram[1] = 8.0;
+        pricePerHour[1] = 0.1690;
+
+        type[2] = "F8s_v2";
+        cpu[2] = 8;
+        ram[2] = 16.0;
+        pricePerHour[2] = 0.3380;
+
+        type[3] = "F16s_v2";
+        cpu[3] = 16;
+        ram[3] = 32.0;
+        pricePerHour[3] = 0.6770;
+
+        type[4] = "F32s_v2";
+        cpu[4] = 32;
+        ram[4] = 64.0;
+        pricePerHour[4] = 1.3530;
+
+        type[5] = "D2s_v5";
+        cpu[5] = 2;
+        ram[5] = 8.0;
+        pricePerHour[5] = 0.0960;
+
+        type[6] = "D4s_v5";
+        cpu[6] = 4;
+        ram[6] = 16.0;
+        pricePerHour[6] = 0.1920;
+
+        type[7] = "D8s_v5";
+        cpu[7] = 8;
+        ram[7] = 32.0;
+        pricePerHour[7] = 0.3840;
+
+        type[8] = "D16s_v5";
+        cpu[8] = 16;
+        ram[8] = 64.0;
+        pricePerHour[8] = 0.7680;
+
+        type[9] = "D32s_v5";
+        cpu[9] = 32;
+        ram[9] = 128.0;
+        pricePerHour[9] = 1.5360;
+
+        type[10] = "E2s_v5";
+        cpu[10] = 2;
+        ram[10] = 16.0;
+        pricePerHour[10] = 0.1260;
+
+        type[11] = "E4s_v5";
+        cpu[11] = 4;
+        ram[11] = 32.0;
+        pricePerHour[11] = 0.2520;
+
+        type[12] = "E8s_v5";
+        cpu[12] = 8;
+        ram[12] = 64.0;
+        pricePerHour[12] = 0.5040;
+
+        type[13] = "E16s_v5";
+        cpu[13] = 16;
+        ram[13] = 128.0;
+        pricePerHour[13] = 1.0080;
+
+        type[14] = "E32s_v5";
+        cpu[14] = 32;
+        ram[14] = 256.0;
+        pricePerHour[14] = 2.0160;
+    }
+    ResourceType getResourceType() const override{
+        return ResourceType:: Compute;
     }
 };
 
-/*class AzureFactory : public CloudFactory{
+class AzureStorage : public Storage{
+    public:
+    AzureStorage(){
+        type[0] = "Standard HDD";
+        capacity[0] = 128;
+        pricePerGB[0] = 0.040;
+
+        type[1] = "Standard HDD";
+        capacity[1] = 256;
+        pricePerGB[1] = 0.040;
+
+        type[2] = "Standard HDD";
+        capacity[2] = 512;
+        pricePerGB[2] = 0.040;
+
+        type[3] = "Standard HDD";
+        capacity[3] = 1024;
+        pricePerGB[3] = 0.040;
+
+        type[4] = "Standard SSD";
+        capacity[4] = 128;
+        pricePerGB[4] = 0.075;
+
+        type[5] = "Standard SSD";
+        capacity[5] = 256;
+        pricePerGB[5] = 0.075;
+
+        type[6] = "Standard SSD";
+        capacity[6] = 512;
+        pricePerGB[6] = 0.075;
+
+        type[7] = "Standard SSD";
+        capacity[7] = 1024;
+        pricePerGB[7] = 0.075;
+
+        type[8] = "Premium SSD";
+        capacity[8] = 128;
+        pricePerGB[8] = 0.154;
+
+        type[9] = "Premium SSD";
+        capacity[9] = 1024;
+        pricePerGB[9] = 0.132;
+    }
+    ResourceType getResourceType() const override {
+        return ResourceType::Storage;
+    }
+};
+
+class AzureNetwork : public Network{
+    public:
+    AzureNetwork(){
+        dataTransfer[0] = 1.0;
+        pricePerGB[0] = 0.087;
+        dataTransfer[1] = 10.0;
+        pricePerGB[1] = 0.087;
+        dataTransfer[2] = 100.0;
+        pricePerGB[2] = 0.087;
+        dataTransfer[3] = 1000.0;
+        pricePerGB[3] = 0.087;
+    }
+    ResourceType getResourceType() const override {
+        return ResourceType::Network;
+    }
+};
+
+class AzureDiscount : public Discount{
+    public :
+    AzureDiscount(){
+        add("On Demand",          0.00f,  0, ResourceType::Compute,  true, 1, false, false, 0.00f);
+        add("Savings Plan 3yr",   0.54f, 36, ResourceType::Compute,  true, 2, false, true,  0.65f);
+        add("Savings Plan 1yr",   0.31f, 12, ResourceType::Compute,  true, 3, false, true,  0.65f);
+        add("Reserved 3yr",       0.61f, 36, ResourceType::Compute,  true, 4, false, true,  0.72f);
+        add("Reserved 1yr",       0.38f, 12, ResourceType::Compute,  true, 5, false, true,  0.72f);
+        add("Spot",               0.79f,  0, ResourceType::Compute,  true, 6, true,  false, 0.90f);
+        add("SQL DB Reserved 1yr",0.30f, 12, ResourceType::Database, true, 7, false, true,  0.40f);
+        add("SQL DB Reserved 3yr",0.50f, 36, ResourceType::Database, true, 8, false, true,  0.60f);
+    }
+    double calculateDiscount(double price) override {
+        return applyChosen(price);
+    }
+};
+
+class AzureFactory : public CloudFactory{
     public:
     Compute* createCompute() override {
         return new AzureCompute();
@@ -616,7 +775,7 @@ class AzureCompute: public Compute(){
         return new AzureDiscount();
     }
    
- };*/
+};
 
 
 
