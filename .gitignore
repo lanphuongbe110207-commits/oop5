@@ -1,0 +1,25 @@
+# ============================================================
+# .gitignore
+# Chi bo qua FILE BUILD RA. KHONG bao gio bo qua file nguon.
+#
+# TUYET DOI KHONG them:  *.cpp   *.h   *.hpp
+# ============================================================
+
+# --- File chay duoc / build ra ---
+*.exe
+*.o
+*.obj
+*.out
+*.a
+*.dll
+a.out
+
+# --- File tam cua compiler ---
+*.gch
+*.pch
+*.d
+
+# --- He dieu hanh ---
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -2,13 +2,14 @@
 #include<string>
 
 using namespace std;
-enum class resourceType{
-    OnDemand = 0,
-    Compute,
+enum class ResourceType{
+    
+    Compute =0,
     Serverless,
     Storage,
     Database,
-    Container
+    Container,
+    Network
 };
 class Compute{
 protected :
@@ -27,29 +28,12 @@ Compute(){
         
     }
 }
-    virtual ResourceType getresourceType() const = 0;
+    virtual ResourceType getResourceType() const = 0;
     virtual ~Compute() = default;
    
 
 };
 
-class Price{
-    protected :
-    double ComputepriceperHour[100];
-    double StoragepricePerGB[100];
-    double NetworkpricePerGB[100];
-    public :
-    Price(){
-        for(int i =0; i<100;i++){
-            ComputepriceperHour[i] = 0.0;
-            StoragepricePerGB[i] = 0.0;
-            NetworkpricePerGB[i] = 0.0;
-        }
-    }
-
-virtual ~Price() = default;
-
-};
 class Storage{
 protected :
     double capacity[100];
@@ -66,6 +50,7 @@ Storage(){
 }
 
 virtual ~Storage() = default;
+virtual ResourceType getResourceType() const = 0;
 
 };
 class Network{
@@ -82,6 +67,7 @@ Network(){
     }
 }
 virtual ~Network() = default;
+virtual ResourceType getResourceType() const = 0;
 };
 class Discount{
     protected:
@@ -90,37 +76,66 @@ class Discount{
     int month[100];
     string type[100];
     int OrderOfType[100];
-    int ResourceType[100];
+    ResourceType ResourceKind[100];
     bool isApplicable[100];
-    int Count[100];
-    
-    
+    bool Spot[100];
+    bool Workload[100];
+    int Count;
+    int chosen;
+    double applyChosen(double price) const{
+        if(chosen<0) return price;
+        return price * (1.0 - discount[chosen]);
+    }
+
     public : 
     Discount(){
-        discount[0] = 0.0;
-        month[0] = 0;
-        type[0] = "";
-        OrderOfType[0] = 0;
-        ResourceType[0] = 0;
-        Count[0] = 0;
-        isApplicable[0] = false;
+        for (int i=0; i<100; i++){
+            discount[i] = 0.0;
+            month[i] = 0;
+            type[i] = "";
+            OrderOfType[i] = 0;
+            ResourceKind[i] = ResourceType::Compute;
+            
+            isApplicable[i] = false;
+            MaxDiscount[i] = 0.0;
+            Spot[i] = false;
+            Workload[i] = false;
+        }
+        Count = 0;
+        chosen = -1;
     }
-    void add(string discountType, float discountValue, int month, int resourceType, bool isApplicable, int orderOfType, float MaxDiscount){
+    void add(string discountType, float discountValue, int month, ResourceType resourceType, bool isApplicable, int orderOfType, bool Spot, bool Workload, float MaxDiscount){
         for(int i=0;i<100;i++){
             if(type[i] == ""){
                 type[i] = discountType;
                 discount[i] = discountValue;
-                MaxDiscount[i] = MaxDiscount;
+
+                this-> MaxDiscount[i] = MaxDiscount;
+                
                 this->month[i] = month;
-                ResourceType[i] = resourceType;
+                ResourceKind[i] = resourceType;
                 this->isApplicable[i] = isApplicable;
                 OrderOfType[i] = orderOfType;
-                Count[i]++;
+                this->Spot[i] = Spot;
+                this->Workload[i] = Workload;
+                Count++;
                 break;
             }
         }
     }
-    
+    int FindBestDiscount(ResourceType resourceType, int CommitMonth, bool allowSpot, bool stableWorkload){
+        chosen = -1;
+        for(int i =0; i<Count; i++){
+            if(!isApplicable[i])  continue;
+            if(ResourceKind[i] != resourceType) continue;
+            if(Spot[i] &&  !allowSpot)  continue;
+            if(Workload[i] &&  !stableWorkload) continue;
+            if(month[i] > 0 && CommitMonth<month[i] ) continue;
+            if(chosen ==-1 || discount[i] > discount[chosen]) chosen = i;
+    }
+    return chosen;
+
+}
     virtual double calculateDiscount(double price) = 0;
 
     virtual ~Discount() = default;
@@ -139,6 +154,9 @@ float cpu;
     float importanceRam;
     float importancecapacity;
     float importanceDataTranfer;
+    int CommitMonth;
+    bool AllowSpot;
+    bool StableWorkload;
 
 public : 
 void input(){
@@ -150,6 +168,12 @@ void input(){
     cin >> capacity;
     cout <<"Enter Data Tranfer";
     cin >> dataTransfer;
+    cout <<"Enter month";
+    cin >> CommitMonth;
+    cout <<"Is it a spot instance? (1 for yes, 0 for no)";
+    cin >> AllowSpot;
+    cout <<"Is it a workload instance? (1 for yes, 0 for no)";
+    cin >> StableWorkload;
 
     float sum;
     while(true){
@@ -164,14 +188,13 @@ void input(){
     cout<<"Enter your percentage of importance for Data Transfer";
     cin >>importanceDataTranfer;
     sum = importanceCPU + importanceRam + importancecapacity + importanceDataTranfer;
-    if(tong == 1) break;
-    cout<<"Sum has to be equal to 1, please retype"<< tong <<". Retype.\n";
+    if(sum == 100) break;
+    cout<<"Please retype again. The percentage has to be equal to 100, please retype because yor sum is equal to "<< sum <<"\n";
     }
-    
-   
-
-
 }
+int getMonth() const{return CommitMonth;}
+bool getSpot() const{return AllowSpot;}
+bool getWorkload() const{ return StableWorkload;}
 };
 
 class CloudFactory {
@@ -180,35 +203,10 @@ public :
     virtual Storage* createStorage() = 0;
     virtual Network* createNetwork() = 0; 
     virtual Discount* createDiscount() = 0;
-    virtual Price* createPrice() = 0;
+    virtual ~CloudFactory() = default;
 
 
 
-};
-class AWSFactory : public CloudFactory{
-    public : 
-
-    Compute* createCompute() override {
-        return new AWSCompute();
-        
-
-    }
-    Storage* createStorage() override{
-        return new AWSStorage();
-    }
-
-    Network* createNetwork() override{
-        return new AWSNetwork();
-
-    }
-
-    Discount* createDiscount() override{
-        return new AWSDiscount();
-
-    }
-    Price* createPrice() override{
-        return new AWSPrice();
-    }
 };
 
 class AWSCompute : public Compute{
@@ -289,7 +287,10 @@ class AWSCompute : public Compute{
         ram[14] = 256.0;
         pricePerHour[14] = 2.016;
     }
-    // cac gia tren duoc xac dinh theo quy mo, dua vao instance, muc on-demand duoc aws cong bo
+    ResourceType getResourceType() const override {
+        return ResourceType::Compute;
+    }
+
     
 
 };
@@ -338,39 +339,240 @@ type[9] = "io2";
 capacity[9] = 1024;  
 pricePerGB[9] = 0.125; 
     }
+    ResourceType getResourceType() const override{
+        return ResourceType::Storage;
+    }
 };
 
 class AWSDiscount : public Discount{
     public :
     AWSDiscount(){
-        type[0] = "On Demand";
-        discount[0] = 0.0;
-        OrderOfType[0]   = 1;
-
-        type[1] ="Saving Plan";
-        discount[1] = 0.0;
-        OrderOfType[1] = 2;
-
-        type[2]= "Reversed Instances";
-        discount[2] = 0.0;
-        OrderOfType[2] = 3;
-
-        type[3] ="Spot";
-        discount[3] = 0.0;
-        OrderOfType[3] = 4;
+        add("On Demand", 0.00f, 0, ResourceType::Compute,true,1, false, false, 0.00f);
+        add("Compute SP 3yr", 0.55f, 36,   ResourceType::Compute,true,2, false, true, 0.66f);
+        add("Compute SP 1yr", 0.35f, 12,   ResourceType::Compute,true,3, false, true, 0.66f);
+        add("EC2 Instance SP 3yr", 0.55f, 36,   ResourceType::Compute,true,4, false, true, 0.66f);
+        add("Standard RI 3yr", 0.55f, 36, ResourceType::Compute, true, 5, false, true, 0.72f);
+        add("Convertible RI 3yr", 0.48f, 36, ResourceType::Compute, true, 6, false, true, 0.66f);
+        add("Database SP 1yr", 0.25f, 12, ResourceType::Database,true,7, false, true, 0.35f);
+        add("RDS RI 3yr",   0.45f, 36,     ResourceType::Database,true,8, false, true, 0.60f);
+        add("Spot",           0.65f, 0,      ResourceType::Compute,true,9, true, false, 0.90f);
+        add("EDP",            0.15f, 0,      ResourceType::Compute,true,10, false, false, 0.20f);
+        
     }
+    double calculateDiscount(double price) override {
+        return applyChosen(price);
+    }
+   
 };
 class AWSNetwork : public Network{
     public :
     AWSNetwork(){
         dataTransfer[0] = 1.0;
+        pricePerGB[0] = 0.09;
         dataTransfer[1] = 10.0;
+        pricePerGB[1] = 0.09;
         dataTransfer[2] = 100.0;
+        pricePerGB[2] = 0.09;
         dataTransfer[3] = 1000.0;
+        pricePerGB[3] = 0.09;
     }
-};      
+    ResourceType getResourceType() const override {return ResourceType::Network;}
+};  
 
-class GCPFACTORY: public CloudFactory{
+class GCPCompute : public Compute{
+    public:
+    GCPCompute(){
+        type[0] = "c3-highcpu-4";
+        cpu[0] = 4;
+        ram[0] = 8.0;
+        pricePerHour[0] = 0.1701;
+
+        type[1] = "c3-highcpu-8";
+        cpu[1] = 8;
+        ram[1] = 16.0;
+        pricePerHour[1] = 0.3402;
+
+        type[2] = "c3-highcpu-16";
+        cpu[2] = 16;
+        ram[2] = 32.0;
+        pricePerHour[2] = 0.6804;
+
+        type[3] = "c3-highcpu-22";
+        cpu[3] = 22;
+        ram[3] = 44.0;
+        pricePerHour[3] = 0.9356;
+
+        type[4] = "c3-highcpu-44";
+        cpu[4] = 44;
+        ram[4] = 88.0;
+        pricePerHour[4] = 1.8711;
+
+        type[5] = "e2-standard-2";
+        cpu[5] = 2;
+        ram[5] = 8.0;
+        pricePerHour[5] = 0.0670;
+
+        type[6] = "e2-standard-4";
+        cpu[6] = 4;
+        ram[6] = 16.0;
+        pricePerHour[6] = 0.1340;
+
+        type[7] = "e2-standard-8";
+        cpu[7] = 8;
+        ram[7] = 32.0;
+        pricePerHour[7] = 0.2680;
+
+        type[8] = "e2-standard-16";
+        cpu[8] = 16;
+        ram[8] = 64.0;
+        pricePerHour[8] = 0.5361;
+
+        type[9] = "e2-standard-32";
+        cpu[9] = 32;
+        ram[9] = 128.0;
+        pricePerHour[9] = 1.0722;
+
+        type[10] = "n2-highmem-2";
+        cpu[10] = 2;
+        ram[10] = 16.0;
+        pricePerHour[10] = 0.1701;
+
+        type[11] = "n2-highmem-4";
+        cpu[11] = 4;
+        ram[11] = 32.0;
+        pricePerHour[11] = 0.3402;
+
+        type[12] = "n2-highmem-8";
+        cpu[12] = 8;
+        ram[12] = 64.0;
+        pricePerHour[12] = 0.6804;
+
+        type[13] = "n2-highmem-16";
+        cpu[13] = 16;
+        ram[13] = 128.0;
+        pricePerHour[13] = 1.3608;
+
+        type[14] = "n2-highmem-32";
+        cpu[14] = 32;
+        ram[14] = 256.0;
+        pricePerHour[14] = 2.7217;
+    }
+    ResourceType getResourceType() const override {
+        return ResourceType::Compute;
+    }
+};
+
+class GCPStorage : public Storage{
+    public:
+    GCPStorage(){
+        type[0] = "pd-standard";
+        capacity[0] = 50;
+        pricePerGB[0] = 0.040;
+
+        type[1] = "pd-standard";
+        capacity[1] = 100;
+        pricePerGB[1] = 0.040;
+
+        type[2] = "pd-standard";
+        capacity[2] = 500;
+        pricePerGB[2] = 0.040;
+
+        type[3] = "pd-standard";
+        capacity[3] = 1024;
+        pricePerGB[3] = 0.040;
+
+        type[4] = "pd-balanced";
+        capacity[4] = 50;
+        pricePerGB[4] = 0.100;
+
+        type[5] = "pd-balanced";
+        capacity[5] = 100;
+        pricePerGB[5] = 0.100;
+
+        type[6] = "pd-balanced";
+        capacity[6] = 500;
+        pricePerGB[6] = 0.100;
+
+        type[7] = "pd-balanced";
+        capacity[7] = 1024;
+        pricePerGB[7] = 0.100;
+
+        type[8] = "pd-ssd";
+        capacity[8] = 50;
+        pricePerGB[8] = 0.170;
+
+        type[9] = "pd-ssd";
+        capacity[9] = 1024;
+        pricePerGB[9] = 0.170;
+    }
+    ResourceType getResourceType() const override {
+        return ResourceType::Storage;
+    }
+};
+
+class GCPNetwork : public Network{
+    public:
+    GCPNetwork(){
+        dataTransfer[0] = 1.0;
+        pricePerGB[0] = 0.12;
+        dataTransfer[1] = 10.0;
+        pricePerGB[1] = 0.12;
+        dataTransfer[2] = 100.0;
+        pricePerGB[2] = 0.12;
+        dataTransfer[3] = 1000.0;
+        pricePerGB[3] = 0.12;
+    }
+    ResourceType getResourceType() const override {
+        return ResourceType::Network;
+    }
+};
+
+class GCPDiscount : public Discount{
+    public :
+    GCPDiscount(){
+        add("On Demand",        0.00f,  0, ResourceType::Compute,  true, 1, false, false, 0.00f);
+        add("Resource CUD 3yr", 0.55f, 36, ResourceType::Compute,  true, 2, false, true,  0.57f);
+        add("Resource CUD 1yr", 0.37f, 12, ResourceType::Compute,  true, 3, false, true,  0.57f);
+        add("Spend CUD 3yr",    0.28f, 36, ResourceType::Compute,  true, 4, false, true,  0.28f);
+        add("SUD",              0.30f,  0, ResourceType::Compute,  true, 5, false, false, 0.30f);
+        add("Spot",             0.40f,  0, ResourceType::Compute,  true, 6, true,  false, 0.60f);
+        add("Database CUD 1yr", 0.25f, 12, ResourceType::Database, true, 7, false, true,  0.35f);
+        add("Database CUD 3yr", 0.45f, 36, ResourceType::Database, true, 8, false, true,  0.60f);
+    }
+    double calculateDiscount(double price) override {
+        return applyChosen(price);
+    }
+};
+
+class AWSFactory : public CloudFactory{
+    public : 
+
+    Compute* createCompute() override {
+        return new AWSCompute();
+        
+
+    }
+    Storage* createStorage() override{
+        return new AWSStorage();
+    }
+
+    Network* createNetwork() override{
+        return new AWSNetwork();
+
+    }
+
+    Discount* createDiscount() override{
+        return new AWSDiscount();
+
+    }
+   
+};
+
+   
+
+class GCPFactory : public CloudFactory{
+
+
     public:
     Compute* createCompute()override {
         return new GCPCompute();
@@ -387,13 +589,18 @@ class GCPFACTORY: public CloudFactory{
     Discount* createDiscount()override {
         return new GCPDiscount();
     }
-    Price* createPrice() override{
-        return new GCPPrice();
-    }
+    
 
 };
 
-class AzureFactory : public CloudFactory{
+class AzureCompute: public Compute(){
+    public:
+    AzureCompute(){
+        type[0] =""
+    }
+};
+
+/*class AzureFactory : public CloudFactory{
     public:
     Compute* createCompute() override {
         return new AzureCompute();
@@ -408,12 +615,10 @@ class AzureFactory : public CloudFactory{
     Discount* createDiscount()override {
         return new AzureDiscount();
     }
-    Price* createPrice() override{
-        return new AzurePrice();
-    }
-};
+   
+ };*/
 
-class 
+
 
     
 
