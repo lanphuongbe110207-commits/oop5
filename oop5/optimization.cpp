@@ -1,7 +1,58 @@
 #include<iostream>
 #include<string>
+#include<cmath>
+#include<algorithm>
+#include<iomanip>
+#include<cstdlib>
 
 using namespace std;
+
+
+int readInt(const string& prompt, int lo, int hi){
+    int x;
+    while(true){
+        cout << prompt;
+        if(cin >> x && x >= lo && x <= hi) return x;
+        if(cin.eof()){
+            cout << "\n  -> Het du lieu nhap, dung chuong trinh\n";
+            exit(0);
+        }
+        cout << "  -> Nhap so nguyen trong [" << lo << ", " << hi << "]\n";
+        cin.clear();
+        cin.ignore(1000, '\n');
+    }
+}
+
+double readDouble(const string& prompt, double lo){
+    double x;
+    while(true){
+        cout << prompt;
+        if(cin >> x && x >= lo) return x;
+        if(cin.eof()){
+            cout << "\n  -> Het du lieu nhap, dung chuong trinh\n";
+            exit(0);
+        }
+        cout << "  -> Nhap so >= " << lo << "\n";
+        cin.clear();
+        cin.ignore(1000, '\n');
+    }
+}
+
+int readCommitMonth(){
+    int m;
+    while(true){
+        cout << "Commit month (0 = on-demand, 12, 36): ";
+        if(cin >> m && (m == 0 || m == 12 || m == 36)) return m;
+        if(cin.eof()){
+            cout << "\n  -> Het du lieu nhap, dung chuong trinh\n";
+            exit(0);
+        }
+        cout << "  -> Chi nhan 0, 12 hoac 36\n";
+        cin.clear();
+        cin.ignore(1000, '\n');
+    }
+}
+
 enum class ResourceType{
     
     Compute =0,
@@ -13,11 +64,12 @@ enum class ResourceType{
 };
 class Compute{
 protected :
+
     float cpu[100];
     double ram[100];
     double pricePerHour[100];
     string type[100];
-    
+
 public:
 Compute(){
     for(int i=0;i<100;i++){
@@ -30,6 +82,19 @@ Compute(){
 }
     virtual ResourceType getResourceType() const = 0;
     virtual ~Compute() = default;
+    int getCount() const{
+        int Count = 0;
+        while(Count<100 && type[Count] != "") Count++;
+        return Count;
+    }
+    float getCPU(int i) const{ return cpu[i];}
+    double getRam(int i) const{ return ram[i];}
+    double getPricePerHour(int i) const{ return pricePerHour[i];}
+    string getType(int i) const{ return type[i];}
+    double calculatePrice(int i, double hours = 730.0) const{
+        return pricePerHour[i] * hours;
+    }
+    
 
    
 
@@ -52,23 +117,68 @@ Storage(){
 
 virtual ~Storage() = default;
 virtual ResourceType getResourceType() const = 0;
-
+int getCount() const{
+    int Count =0;
+    while(Count<100 && type[Count] != "") Count++;
+    return Count;
+}
+double getCapacity(int i) const{ return capacity[i];}
+string getType(int i) const{ return type[i];}
+double getPricePerGB(int i) const{return pricePerGB[i];}
+double calculateStorageCost(int i, double gb) const{
+    return pricePerGB[i] * gb;
+}
 };
+
+
 class Network{
 protected :
     double dataTransfer[100];
     double pricePerGB[100];
+    string type[100];
     
 public : 
 Network(){
     for(int i=0;i<100;i++){
         dataTransfer[i] = 0.0;
         pricePerGB[i] = 0.0;
+        type[i] ="";
         
     }
 }
 virtual ~Network() = default;
 virtual ResourceType getResourceType() const = 0;
+
+int getCount() const{
+        int Count = 0;
+        while(Count<100 && type[Count] != "") Count++;
+        return Count;
+    }
+
+    double getDataTransfer(int i) const{return dataTransfer[i]; }
+    double getPricePerGB (int i) const{return pricePerGB[i];}
+    string getType(int i) const {return type[i];}
+
+
+    double transferCost(double gb) const{
+        if(gb<=0) return 0.0;
+        double cost = 0.0;
+        double prev =0.0;
+        int n = getCount();
+        for(int i=0; i< n; i++){
+            double upper = getDataTransfer(i);
+            double part;
+            if(i== n-1) part = gb - prev;
+            else part =(gb<upper ? gb : upper)-prev;
+            if(part>0) cost+= part*getPricePerGB(i);
+            prev = upper;
+            if(i<n-1&&gb<=upper) break;
+
+        }
+        return cost;
+    }
+
+
 };
 class Discount{
     protected:
@@ -83,9 +193,12 @@ class Discount{
     bool Workload[100];
     int Count;
     int chosen;
+    double effectiveDiscount(int i) const{
+        return (discount[i] < MaxDiscount[i] ? discount[i] : MaxDiscount[i]);
+    }
     double applyChosen(double price) const{
         if(chosen<0) return price;
-        return price * (1.0 - discount[chosen]);
+        return price * (1.0 - effectiveDiscount(chosen));
     }
 
     public : 
@@ -132,10 +245,14 @@ class Discount{
             if(Spot[i] &&  !allowSpot)  continue;
             if(Workload[i] &&  !stableWorkload) continue;
             if(month[i] > 0 && CommitMonth<month[i] ) continue;
-            if(chosen ==-1 || discount[i] > discount[chosen]) chosen = i;
+            if(chosen ==-1 || effectiveDiscount(i) > effectiveDiscount(chosen)) chosen = i;
     }
     return chosen;
 
+}
+double optimize(double price, ResourceType resourceType, int CommitMonth, bool allowSpot, bool stableWorkload){
+    FindBestDiscount(resourceType, CommitMonth, allowSpot, stableWorkload);
+    return calculateDiscount(price);
 }
     virtual double calculateDiscount(double price) = 0;
 
@@ -151,51 +268,27 @@ float cpu;
    
     double dataTransfer;
   
-    float importanceCPU;
-    float importanceRam;
-    float importancecapacity;
-    float importanceDataTranfer;
     int CommitMonth;
     bool AllowSpot;
     bool StableWorkload;
 
 public : 
 void input(){
-    cout<<"Enter CPU :";
-    cin >> cpu;
-    cout<<"Enter ram";
-    cin >> ram;
-    cout <<"Enter capaccity";
-    cin >> capacity;
-    cout <<"Enter Data Tranfer";
-    cin >> dataTransfer;
-    cout <<"Enter month";
-    cin >> CommitMonth;
-    cout <<"Is it a spot instance? (1 for yes, 0 for no)";
-    cin >> AllowSpot;
-    cout <<"Is it a workload instance? (1 for yes, 0 for no)";
-    cin >> StableWorkload;
-
-    float sum;
-    while(true){
-    cout<<"Enter your percentage of importance for CPU";
-    cin >>importanceCPU;
-    cout<<"Enter your percentage of importance for Ram";
-    cin >>importanceRam;
-
-    cout<<"Enter your percentage of importance for Capacity";
-    cin >>importancecapacity;
-
-    cout<<"Enter your percentage of importance for Data Transfer";
-    cin >>importanceDataTranfer;
-    sum = importanceCPU + importanceRam + importancecapacity + importanceDataTranfer;
-    if(sum == 100) break;
-    cout<<"Please retype again. The percentage has to be equal to 100, please retype because yor sum is equal to "<< sum <<"\n";
-    }
+    cpu            = readDouble("CPU (>=1): ", 1);
+    ram            = readDouble("RAM GB (>=1): ", 1);
+    capacity       = readDouble("Storage GB (>=1): ", 1);
+    dataTransfer   = readDouble("Data transfer GB (>=0): ", 0);
+    CommitMonth    = readCommitMonth();
+    AllowSpot      = readInt("Spot instance? (1=yes, 0=no): ", 0, 1);
+    StableWorkload = readInt("Stable workload? (1=yes, 0=no): ", 0, 1);
 }
 int getMonth() const{return CommitMonth;}
 bool getSpot() const{return AllowSpot;}
 bool getWorkload() const{ return StableWorkload;}
+float getCPU() const { return cpu;}
+double getRam() const {return ram;}
+double getCapacity() const{return capacity;}
+double getDataTransfer() const{return dataTransfer;}
 };
 
 class CloudFactory {
@@ -368,14 +461,27 @@ class AWSDiscount : public Discount{
 class AWSNetwork : public Network{
     public :
     AWSNetwork(){
-        dataTransfer[0] = 1.0;
-        pricePerGB[0] = 0.09;
-        dataTransfer[1] = 10.0;
-        pricePerGB[1] = 0.09;
-        dataTransfer[2] = 100.0;
-        pricePerGB[2] = 0.09;
-        dataTransfer[3] = 1000.0;
-        pricePerGB[3] = 0.09;
+        // Nguon: https://aws.amazon.com/ec2/pricing/on-demand/ (us-east-1, 23/10/2026)
+        // Nguong luong ke, don vi GB.
+        type[0] = "0-100GB";
+        dataTransfer[0] = 100;
+        pricePerGB[0] = 0.000;
+
+        type[1] = "100GB-10TB";
+        dataTransfer[1] = 10240;
+        pricePerGB[1] = 0.090;
+
+        type[2] = "10-50TB";
+        dataTransfer[2] = 51200;
+        pricePerGB[2] = 0.085;
+
+        type[3] = "50-150TB";
+        dataTransfer[3] = 153600;
+        pricePerGB[3] = 0.070;
+
+        type[4] = "150TB+";
+        dataTransfer[4] = 512000;
+        pricePerGB[4] = 0.050;
     }
     ResourceType getResourceType() const override {return ResourceType::Network;}
 };  
@@ -514,14 +620,22 @@ class GCPStorage : public Storage{
 class GCPNetwork : public Network{
     public:
     GCPNetwork(){
-        dataTransfer[0] = 1.0;
-        pricePerGB[0] = 0.12;
-        dataTransfer[1] = 10.0;
-        pricePerGB[1] = 0.12;
-        dataTransfer[2] = 100.0;
-        pricePerGB[2] = 0.12;
-        dataTransfer[3] = 1000.0;
-        pricePerGB[3] = 0.12;
+        // Nguon: https://cloud.google.com/vpc/network-pricing (Premium Tier, us-central1, 23/10/2026)
+        type[0] = "0-1GB";
+        dataTransfer[0] = 1;
+        pricePerGB[0] = 0.000;
+
+        type[1] = "1GB-1TB";
+        dataTransfer[1] = 1024;
+        pricePerGB[1] = 0.120;
+
+        type[2] = "1-10TB";
+        dataTransfer[2] = 10240;
+        pricePerGB[2] = 0.110;
+
+        type[3] = "10TB+";
+        dataTransfer[3] = 512000;
+        pricePerGB[3] = 0.080;
     }
     ResourceType getResourceType() const override {
         return ResourceType::Network;
@@ -728,14 +842,27 @@ class AzureStorage : public Storage{
 class AzureNetwork : public Network{
     public:
     AzureNetwork(){
-        dataTransfer[0] = 1.0;
-        pricePerGB[0] = 0.087;
-        dataTransfer[1] = 10.0;
+        // Nguon: https://azure.microsoft.com/en-us/pricing/details/bandwidth/
+        // (Internet Egress, North America/Europe, 23/10/2026). 1 TB = 1000 GB.
+        type[0] = "0-100GB";
+        dataTransfer[0] = 100;
+        pricePerGB[0] = 0.000;
+
+        type[1] = "100GB-10TB";
+        dataTransfer[1] = 10100;
         pricePerGB[1] = 0.087;
-        dataTransfer[2] = 100.0;
-        pricePerGB[2] = 0.087;
-        dataTransfer[3] = 1000.0;
-        pricePerGB[3] = 0.087;
+
+        type[2] = "10-50TB";
+        dataTransfer[2] = 51000;
+        pricePerGB[2] = 0.083;
+
+        type[3] = "50-150TB";
+        dataTransfer[3] = 151000;
+        pricePerGB[3] = 0.070;
+
+        type[4] = "150TB+";
+        dataTransfer[4] = 501000;
+        pricePerGB[4] = 0.050;
     }
     ResourceType getResourceType() const override {
         return ResourceType::Network;
@@ -777,13 +904,156 @@ class AzureFactory : public CloudFactory{
    
 };
 
+struct cloudPlan{
+    string cloud;
+    string instance;
+    string disk;
+    double rawCompute = 0.0;
+    double computeCost = 0.0;
+    double storageCost = 0.0;
+    double networkCost = 0.0;
+    double totalCost = 0.0;
+    bool feasible = false;
+};
 
+cloudPlan evaluate(CloudFactory* f, const Requirement& req, const string& cloudName){
+    cloudPlan p;
+    p.cloud = cloudName;
+
+    Compute* c = f->createCompute();
+    Storage* s = f->createStorage();
+    Network* n = f->createNetwork();
+    Discount* d = f->createDiscount();
+
+   
 
     
+    int bestC = -1;
+    for(int i = 0; i < c->getCount(); i++){
+        if(c->getCPU(i) < req.getCPU()) continue;
+        if(c->getRam(i) < req.getRam()) continue;
+        if(bestC == -1 || c->getPricePerHour(i) < c->getPricePerHour(bestC)) bestC = i;
+    }
+    if(bestC == -1){
+        p.feasible = false;
+        delete c; delete s; delete n; delete d;
+        return p;
+    }
+    p.instance = c->getType(bestC);
+
+   
+    int bestS = -1;
+    for(int i = 0; i < s->getCount(); i++){
+        if(s->getCapacity(i) < req.getCapacity()) continue;
+        if(bestS == -1 || s->getPricePerGB(i) < s->getPricePerGB(bestS)) bestS = i;
+    }
+    if(bestS == -1){
+        p.feasible = false;
+        delete c; delete s; delete n; delete d;
+        return p;
+    }
+    p.disk = s->getType(bestS);
+
+   
+    double RawCompute = c-> calculatePrice(bestC);
+    p.computeCost = d->optimize(RawCompute, ResourceType:: Compute, req.getMonth(),req.getSpot(), req.getWorkload());
+    p.rawCompute = RawCompute;
+    p.storageCost = s->calculateStorageCost(bestS, req.getCapacity());
+    p.networkCost = n-> transferCost(req.getDataTransfer());
+    p.totalCost = p.computeCost + p.storageCost + p.networkCost;
+    p.feasible = true;
 
 
 
+    delete c; delete s; delete n; delete d;
+    return p;
+}
+
+void printPlans(const cloudPlan plans[], int n){
+    cout << "\n" << left
+         << setw(8)  << "Cloud"
+         << setw(18) << "Instance"
+         << setw(16) << "Disk"
+         << right
+         << setw(10) << "Compute"
+         << setw(10) << "Storage"
+         << setw(10) << "Network"
+         << setw(10) << "Saving"
+         << setw(10) << "TOTAL" << "\n";
+
+    for(int i = 0; i < n; i++){
+        if(!plans[i].feasible){
+            cout << left << setw(8) << plans[i].cloud
+                 << "khong co cau hinh du dap ung\n";
+            continue;
+        }
+        cout << left  << setw(8)  << plans[i].cloud
+             << setw(18) << plans[i].instance
+             << setw(16) << plans[i].disk
+             << right << fixed << setprecision(2)
+             << setw(10) << plans[i].computeCost
+             << setw(10) << plans[i].storageCost
+             << setw(10) << plans[i].networkCost
+             << setw(10) << (plans[i].rawCompute - plans[i].computeCost)
+             << setw(10) << plans[i].totalCost << "\n";
+    }
+}
 
 int main(){
+    AWSFactory aws;
+    GCPFactory gcp;
+    AzureFactory azure;
+
+    while(true){
+        cout << "\n===== CLOUD COST OPTIMIZER =====\n"
+             << "1. Find the best optimized option\n"
+             << "0. out\n"
+             << "chose: ";
+
+        int choice;
+        if(!(cin >> choice)){
+            if(cin.eof()) break;
+            cout << "  -> Enter 1 or 0\n";
+            cin.clear();
+            cin.ignore(1000, '\n');
+            continue;
+        }
+        if(choice == 0) break;
+        if(choice != 1){
+            cout << "  -> Just 1 or 0\n";
+            continue;
+        }
+
+        Requirement req;
+        req.input();
+
+        cloudPlan plans[3] = {
+            evaluate(&aws,   req, "AWS"),
+            evaluate(&gcp,   req, "GCP"),
+            evaluate(&azure, req, "Azure")
+        };
+
+        printPlans(plans, 3);
+
+        int best = -1;
+        for(int i = 0; i < 3; i++){
+            if(!plans[i].feasible) continue;
+            if(best == -1 || plans[i].totalCost < plans[best].totalCost) best = i;
+        }
+
+        if(best == -1){
+            cout << "\nThere is not cloud to satisfy you\n";
+        } else {
+            double save = plans[best].rawCompute - plans[best].computeCost;
+            double pct  = plans[best].rawCompute > 0 ? save / plans[best].rawCompute * 100.0 : 0.0;
+            cout << "\n-> Should be chosen: " << plans[best].cloud
+                 << " (" << plans[best].instance << ")\n"
+                 << "   Sum: " << fixed << setprecision(2) << plans[best].totalCost << " USD/month\n"
+                 << "   Amount of compute saving: " << save << " USD ("
+                 << setprecision(1) << pct << "%)\n";
+        }
+    }
+
+    cout << "Bye aem\n";
     return 0;
 }
