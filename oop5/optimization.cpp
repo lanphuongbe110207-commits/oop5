@@ -907,7 +907,9 @@ class AzureFactory : public CloudFactory{
 struct cloudPlan{
     string cloud;
     string instance;
+    int instanceCount = 0;
     string disk;
+    int diskCount = 0;
     double rawCompute = 0.0;
     double computeCost = 0.0;
     double storageCost = 0.0;
@@ -915,6 +917,89 @@ struct cloudPlan{
     double totalCost = 0.0;
     bool feasible = false;
 };
+
+
+// Scale out: 1 ycau co the duoc dap ung boi NHIEU may nho
+// (tong CPU / RAM cua cac may >= yeu cau), chu khong can bat buoc nua
+// phai co mot may don le du lon.
+// ycau nay dc dung phong truong hop gb qua lon o tung class
+
+struct ComputePlan{
+    int cnt[100];       
+    int total;          
+    double rawCost;    
+    bool found;
+
+    ComputePlan(){
+        for(int i = 0; i < 100; i++) cnt[i] = 0;
+        total = 0;
+        rawCost = 0.0;
+        found = false;
+    }
+};
+// tim ra to hop may re nhat, duyet so luong may i r ket hop voi may j de bo sung cho truong hop cin thieu
+// da so voi bai nay thi cpu, ram la  bi rang buoc nen thuong dung 2 loai may
+
+ComputePlan findCheapestMix(const Compute* c, double needCpu, double needRam){
+    ComputePlan best;
+    int m = c->getCount();
+    if(m == 0) return best;
+
+    for(int i = 0; i < m; i++){
+        double cpuI = c->getCPU(i);
+        double ramI = c->getRam(i);
+        if(cpuI <= 0 || ramI <= 0) continue;
+
+        
+        double coverI = max(needCpu / cpuI, needRam / ramI);
+        long long nmax = (long long)ceil(coverI < 0 ? 0.0 : coverI);
+        if(nmax > 20000) nmax = 20000;      // ngan dlieu phi ly
+        for(long long k = 0; k <= nmax; k++){
+            double remCpu = needCpu - k * cpuI;
+            double remRam = needRam - k * ramI;
+
+            for(int j = 0; j < m; j++){
+                double cpuJ = c->getCPU(j);
+                double ramJ = c->getRam(j);
+                if(cpuJ <= 0 || ramJ <= 0) continue;
+
+                long long nj = 0;
+                if(remCpu > 0) nj = max(nj, (long long)ceil(remCpu / cpuJ));
+                if(remRam > 0) nj = max(nj, (long long)ceil(remRam / ramJ));
+
+                long long total = k + nj;
+                if(total <= 0) continue;
+
+                double cost = k * c->getPricePerHour(i) + nj * c->getPricePerHour(j);
+
+                bool better = !best.found
+                           || cost < best.rawCost - 1e-9
+                           || (fabs(cost - best.rawCost) <= 1e-9 && total < best.total);
+                if(better){
+                    best.found = true;
+                    best.rawCost = cost;
+                    best.total = (int)total;
+                    for(int t = 0; t < 100; t++) best.cnt[t] = 0;
+                    best.cnt[i] += (int)k;
+                    best.cnt[j] += (int)nj;
+                }
+            }
+        }
+    }
+    return best;
+}
+
+string describeInstances(const Compute* c, const ComputePlan& plan){
+    string s;
+    for(int i = 0; i < c->getCount(); i++){
+        if(plan.cnt[i] <= 0) continue;
+        if(!s.empty()) s += " + ";
+        s += c->getType(i);
+        if(plan.cnt[i] > 1) s += " x" + to_string(plan.cnt[i]);
+    }
+    if(s.empty()) s = "-";
+    return s;
+}
 
 cloudPlan evaluate(CloudFactory* f, const Requirement& req, const string& cloudName){
     cloudPlan p;
@@ -925,37 +1010,40 @@ cloudPlan evaluate(CloudFactory* f, const Requirement& req, const string& cloudN
     Network* n = f->createNetwork();
     Discount* d = f->createDiscount();
 
-   
-
-    
-    int bestC = -1;
-    for(int i = 0; i < c->getCount(); i++){
-        if(c->getCPU(i) < req.getCPU()) continue;
-        if(c->getRam(i) < req.getRam()) continue;
-        if(bestC == -1 || c->getPricePerHour(i) < c->getPricePerHour(bestC)) bestC = i;
-    }
-    if(bestC == -1){
+    ComputePlan mix = findCheapestMix(c, req.getCPU(), req.getRam());
+    if(!mix.found){
         p.feasible = false;
         delete c; delete s; delete n; delete d;
         return p;
     }
-    p.instance = c->getType(bestC);
-
-   
+    p.instance = describeInstances(c, mix);
+    p.instanceCount = mix.total;
+// tim loai dia re nhat, neu ko du dung thi lay them nhieu dia cung loai (van uu tien chi phi)
+    
     int bestS = -1;
     for(int i = 0; i < s->getCount(); i++){
-        if(s->getCapacity(i) < req.getCapacity()) continue;
-        if(bestS == -1 || s->getPricePerGB(i) < s->getPricePerGB(bestS)) bestS = i;
+        if(bestS == -1
+           || s->getPricePerGB(i) < s->getPricePerGB(bestS) - 1e-12
+           || (fabs(s->getPricePerGB(i) - s->getPricePerGB(bestS)) <= 1e-12
+               && s->getCapacity(i) > s->getCapacity(bestS))){
+            bestS = i;
+        }
     }
     if(bestS == -1){
         p.feasible = false;
         delete c; delete s; delete n; delete d;
         return p;
     }
-    p.disk = s->getType(bestS);
 
-   
-    double RawCompute = c-> calculatePrice(bestC);
+    double diskCap = s->getCapacity(bestS);
+    int diskCount = diskCap > 0 ? (int)ceil(req.getCapacity() / diskCap) : 1;
+    if(diskCount < 1) diskCount = 1;
+
+    p.disk = s->getType(bestS);
+    if(diskCount > 1) p.disk += " x" + to_string(diskCount);
+    p.diskCount = diskCount;
+
+    double RawCompute = mix.rawCost * 730.0;
     p.computeCost = d->optimize(RawCompute, ResourceType:: Compute, req.getMonth(),req.getSpot(), req.getWorkload());
     p.rawCompute = RawCompute;
     p.storageCost = s->calculateStorageCost(bestS, req.getCapacity());
@@ -963,17 +1051,22 @@ cloudPlan evaluate(CloudFactory* f, const Requirement& req, const string& cloudN
     p.totalCost = p.computeCost + p.storageCost + p.networkCost;
     p.feasible = true;
 
-
-
     delete c; delete s; delete n; delete d;
     return p;
 }
 
 void printPlans(const cloudPlan plans[], int n){
+    int wInst = 18;
+    for(int i = 0; i < n; i++){
+        if(plans[i].feasible && (int)plans[i].instance.size() + 2 > wInst)
+            wInst = (int)plans[i].instance.size() + 2;
+    }
+
     cout << "\n" << left
          << setw(8)  << "Cloud"
-         << setw(18) << "Instance"
-         << setw(16) << "Disk"
+         << setw(wInst) << "Instance"
+         << setw(5)  << "Qty"
+         << setw(18) << "Disk"
          << right
          << setw(10) << "Compute"
          << setw(10) << "Storage"
@@ -984,12 +1077,13 @@ void printPlans(const cloudPlan plans[], int n){
     for(int i = 0; i < n; i++){
         if(!plans[i].feasible){
             cout << left << setw(8) << plans[i].cloud
-                 << "khong co cau hinh du dap ung\n";
+                 << "There is not configuration to satisfy you\n";
             continue;
         }
         cout << left  << setw(8)  << plans[i].cloud
-             << setw(18) << plans[i].instance
-             << setw(16) << plans[i].disk
+             << setw(wInst) << plans[i].instance
+             << setw(5)  << plans[i].instanceCount
+             << setw(18) << plans[i].disk
              << right << fixed << setprecision(2)
              << setw(10) << plans[i].computeCost
              << setw(10) << plans[i].storageCost
@@ -1008,7 +1102,7 @@ int main(){
         cout << "\n===== CLOUD COST OPTIMIZER =====\n"
              << "1. Find the best optimized option\n"
              << "0. out\n"
-             << "chose: ";
+             << "choose: ";
 
         int choice;
         if(!(cin >> choice)){
@@ -1048,7 +1142,8 @@ int main(){
             double pct  = plans[best].rawCompute > 0 ? save / plans[best].rawCompute * 100.0 : 0.0;
             cout << "\n-> Should be chosen: " << plans[best].cloud
                  << " (" << plans[best].instance << ")\n"
-                 << "   Sum: " << fixed << setprecision(2) << plans[best].totalCost << " USD/month\n"
+                 << "   The number of Computer: " << plans[best].instanceCount << "\n"
+                 << "   Total: " << fixed << setprecision(2) << plans[best].totalCost << " USD/month\n"
                  << "   Amount of compute saving: " << save << " USD ("
                  << setprecision(1) << pct << "%)\n";
         }
