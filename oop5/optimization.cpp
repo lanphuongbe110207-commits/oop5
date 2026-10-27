@@ -14,10 +14,10 @@ int readInt(const string& prompt, int lo, int hi){
         cout << prompt;
         if(cin >> x && x >= lo && x <= hi) return x;
         if(cin.eof()){
-            cout << "\n  -> Het du lieu nhap, dung chuong trinh\n";
+            cout << "\n  -> Run out of storage memmory to input, end this program\n";
             exit(0);
         }
-        cout << "  -> Nhap so nguyen trong [" << lo << ", " << hi << "]\n";
+        cout << "  -> Enter the positive integer [" << lo << ", " << hi << "]\n";
         cin.clear();
         cin.ignore(1000, '\n');
     }
@@ -29,10 +29,10 @@ double readDouble(const string& prompt, double lo){
         cout << prompt;
         if(cin >> x && x >= lo) return x;
         if(cin.eof()){
-            cout << "\n  -> Het du lieu nhap, dung chuong trinh\n";
+            cout << "\n  -> Run out of storage memmory to input, end this program\n";
             exit(0);
         }
-        cout << "  -> Nhap so >= " << lo << "\n";
+        cout << "  -> Enter the number >= " << lo << "\n";
         cin.clear();
         cin.ignore(1000, '\n');
     }
@@ -44,10 +44,10 @@ int readCommitMonth(){
         cout << "Commit month (0 = on-demand, 12, 36): ";
         if(cin >> m && (m == 0 || m == 12 || m == 36)) return m;
         if(cin.eof()){
-            cout << "\n  -> Het du lieu nhap, dung chuong trinh\n";
+            cout << "\n  -> Run out of storage memmory to input, end this program \n";
             exit(0);
         }
-        cout << "  -> Chi nhan 0, 12 hoac 36\n";
+        cout << "  -> Just accept 0, 12 hoac 36\n";
         cin.clear();
         cin.ignore(1000, '\n');
     }
