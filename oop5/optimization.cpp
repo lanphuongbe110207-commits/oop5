@@ -14,7 +14,7 @@ int readInt(const string& prompt, int lo, int hi){
         cout << prompt;
         if(cin >> x && x >= lo && x <= hi) return x;
         if(cin.eof()){
-            cout << "\n  -> Run out of storage memmory to input, end this program\n";
+            cout << "\n  -> Out of input, end this program\n";
             exit(0);
         }
         cout << "  -> Enter the positive integer [" << lo << ", " << hi << "]\n";
