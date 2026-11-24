@@ -444,7 +444,8 @@ class AWSDiscount : public Discount{
         add("On Demand", 0.00f, 0, ResourceType::Compute,true,1, false, false, 0.00f);
         add("Compute SP 3yr", 0.55f, 36,   ResourceType::Compute,true,2, false, true, 0.66f);
         add("Compute SP 1yr", 0.35f, 12,   ResourceType::Compute,true,3, false, true, 0.66f);
-        add("EC2 Instance SP 3yr", 0.55f, 36,   ResourceType::Compute,true,4, false, true, 0.66f);
+        // Nguon: https://aws.amazon.com/savingsplans/compute-pricing/ (EC2 Instance SP: up to 72%, Compute SP: up to 66%)
+        add("EC2 Instance SP 3yr", 0.55f, 36,   ResourceType::Compute,true,4, false, true, 0.72f);
         add("Standard RI 3yr", 0.55f, 36, ResourceType::Compute, true, 5, false, true, 0.72f);
         add("Convertible RI 3yr", 0.48f, 36, ResourceType::Compute, true, 6, false, true, 0.66f);
         add("Database SP 1yr", 0.25f, 12, ResourceType::Database,true,7, false, true, 0.35f);
@@ -648,11 +649,14 @@ class GCPDiscount : public Discount{
         add("On Demand",        0.00f,  0, ResourceType::Compute,  true, 1, false, false, 0.00f);
         add("Resource CUD 3yr", 0.55f, 36, ResourceType::Compute,  true, 2, false, true,  0.57f);
         add("Resource CUD 1yr", 0.37f, 12, ResourceType::Compute,  true, 3, false, true,  0.57f);
-        add("Spend CUD 3yr",    0.28f, 36, ResourceType::Compute,  true, 4, false, true,  0.28f);
-        add("SUD",              0.30f,  0, ResourceType::Compute,  true, 5, false, false, 0.30f);
-        add("Spot",             0.40f,  0, ResourceType::Compute,  true, 6, true,  false, 0.60f);
-        add("Database CUD 1yr", 0.25f, 12, ResourceType::Database, true, 7, false, true,  0.35f);
-        add("Database CUD 3yr", 0.45f, 36, ResourceType::Database, true, 8, false, true,  0.60f);
+        // Nguon: https://cloud.google.com/compute/vm-instance-pricing (FAQ "What discounts are available?")
+        // Flexible (spend-based) CUD: 1 nam = 28%, 3 nam = 46%.
+        add("Spend CUD 1yr",    0.28f, 12, ResourceType::Compute,  true, 4, false, true,  0.28f);
+        add("Spend CUD 3yr",    0.46f, 36, ResourceType::Compute,  true, 5, false, true,  0.46f);
+        add("SUD",              0.30f,  0, ResourceType::Compute,  true, 6, false, false, 0.30f);
+        add("Spot",             0.40f,  0, ResourceType::Compute,  true, 7, true,  false, 0.60f);
+        add("Database CUD 1yr", 0.25f, 12, ResourceType::Database, true, 8, false, true,  0.35f);
+        add("Database CUD 3yr", 0.45f, 36, ResourceType::Database, true, 9, false, true,  0.60f);
     }
     double calculateDiscount(double price) override {
         return applyChosen(price);
@@ -939,6 +943,7 @@ struct ComputePlan{
 };
 // tim ra to hop may re nhat, duyet so luong may i r ket hop voi may j de bo sung cho truong hop cin thieu
 // da so voi bai nay thi cpu, ram la  bi rang buoc nen thuong dung 2 loai may
+// cach nay chua co rang buoc dau vao ( ram>= ycau cua MOT tvu)
 
 ComputePlan findCheapestMix(const Compute* c, double needCpu, double needRam){
     ComputePlan best;
@@ -961,11 +966,13 @@ ComputePlan findCheapestMix(const Compute* c, double needCpu, double needRam){
             for(int j = 0; j < m; j++){
                 double cpuJ = c->getCPU(j);
                 double ramJ = c->getRam(j);
+                
                 if(cpuJ <= 0 || ramJ <= 0) continue;
 
                 long long nj = 0;
                 if(remCpu > 0) nj = max(nj, (long long)ceil(remCpu / cpuJ));
                 if(remRam > 0) nj = max(nj, (long long)ceil(remRam / ramJ));
+                // to be rounded up to find the appropriate number of computer
 
                 long long total = k + nj;
                 if(total <= 0) continue;
